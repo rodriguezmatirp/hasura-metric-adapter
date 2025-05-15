@@ -28,3 +28,5 @@ ARG TARGETARCH
 COPY --from=build /release/$TARGETARCH/metrics /
 
 CMD ["/metrics"]
+
+LABEL org.opencontainers.image.source=https://github.com/rodriguezmatirp/hasura-metric-adapter
