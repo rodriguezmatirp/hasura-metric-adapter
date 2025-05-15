@@ -23,7 +23,7 @@ RUN touch src/main.rs && cargo build --release --target=$(cat /.platform)
 RUN mkdir -p /release/$TARGETARCH
 RUN cp ./target/$(cat /.platform)/release/metrics /release/$TARGETARCH/metrics
 
-FROM gcr.io/distroless/cc-debian11
+FROM docker.io/debian
 ARG TARGETARCH
 COPY --from=build /release/$TARGETARCH/metrics /
 
