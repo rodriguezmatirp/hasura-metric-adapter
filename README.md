@@ -155,8 +155,8 @@ The following metrics are the same as in the project (https://github.com/zolamk/
 
 ## Logs
 
-Hasura logs are sent via opentelemetry gRPC. 
-In the example provided, the logs can be viewed via jaeger on http://localhost:16686/search.
+Hasura logs are read from the log file or named pipe as configured.
+
 In order to build a new docker image, in the main directory run:
 ```
 docker build -t metric .
@@ -167,12 +167,11 @@ docker compose run
 
 Don't use version `v0.1.0` its broken.
 
-The docker image `ghcr.io/afitzek/hasura-metric-adapter:v0.1.6` needs four environment variables to be configured.
+The docker image `ghcr.io/afitzek/hasura-metric-adapter:v0.1.6` needs the following environment variables to be configured:
 
 `LISTEN_ADDR`: The listen address for the metric endpoint  
 `LOG_FILE`: The log file, which will hold the hasura logs  
 `HASURA_GRAPHQL_ENDPOINT` The hasura endpoint (defaults to `http://localhost:8080`)  
-`OPENTEL_ENDPOINT` The Open Telemetry collector endpoint (defaults to `http://localhost:4317`)  
 `HASURA_GRAPHQL_ADMIN_SECRET` The hasura admin secret this is required  
 
 ## K8S Example
