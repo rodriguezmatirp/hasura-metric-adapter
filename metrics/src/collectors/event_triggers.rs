@@ -119,7 +119,9 @@ pub(crate) async fn check_event_triggers(cfg: &Configuration, metric_obj: &Telem
 
     debug!("Processing all the databases to look for event triggers");
 
-    let list_tmp = metadata["metadata"]["sources"].as_array();
+    let list_tmp = metadata.get("metadata")
+        .and_then(|m| m.get("sources"))
+        .and_then(|s| s.as_array());
 
     match list_tmp {
         Some(list) => {
@@ -135,7 +137,7 @@ pub(crate) async fn check_event_triggers(cfg: &Configuration, metric_obj: &Telem
         }
         None => {
             metric_obj.ERRORS_TOTAL.with_label_values(&["event"]).inc();
-            warn!("Failed to read metadata from responte. It may be inconsistent.");
+            warn!("Failed to read metadata from response. It may be inconsistent or missing sources.");
         }
     }
 
