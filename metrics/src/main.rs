@@ -11,12 +11,6 @@ use log::{info, warn, debug, error};
 use prometheus::{Encoder, TextEncoder};
 use tokio::sync::watch;
 use crate::telemetry::Telemetry;
-use opentelemetry::{
-    global, runtime,
-    sdk::{trace, Resource},
-    trace::TraceError,KeyValue,
-};
-use opentelemetry_otlp::WithExportConfig;
 
 mod logreader;
 mod logprocessor;
@@ -102,9 +96,6 @@ pub(crate) struct Configuration {
     #[clap(name ="hasura-endpoint", long = "hasura-endpoint", env = "HASURA_GRAPHQL_ENDPOINT", default_value = "http://localhost:8080")]
     hasura_addr: String,
 
-    #[clap(name ="opentel-endpoint", long = "opentel-endpoint", env = "OPENTEL_ENDPOINT", default_value = "http://localhost:4317")]
-    opentel_addr: String,
-
     #[clap(name ="hasura-admin-secret", long = "hasura-admin-secret", env = "HASURA_GRAPHQL_ADMIN_SECRET")]
     hasura_admin: Option<String>,
 
@@ -143,30 +134,10 @@ fn signal_handler() -> watch::Receiver<()> {
     terminate_rx
 }
 
-fn init_tracer(opentel_addr: &str) -> Result<trace::Tracer, TraceError> {
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(opentel_addr),
-        )
-        .with_trace_config(
-            trace::config().with_resource(Resource::new(vec![KeyValue::new(
-                opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                "hasura-metrics-adapter",
-            )])),
-        )
-        .install_batch(runtime::Tokio)
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let mut config = Configuration::parse();
-
-    // Initialize the opentel tracer
-    let tracer = init_tracer(&config.opentel_addr)?;
 
     if config.hasura_admin.is_none() {
         let admin_collectors = [
@@ -194,7 +165,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let res = tokio::try_join!(
         webserver(&config),
-        logreader::read_file(&tracer, &config.log_file, &metric_obj, config.sleep_time, terminate_rx.clone()),
+        logreader::read_file(&config.log_file, &metric_obj, config.sleep_time, terminate_rx.clone()),
         collectors::run_metadata_collector(&config, &metric_obj, terminate_rx.clone())
     );
 
@@ -207,9 +178,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(e.into());
         }
     }
-
-    // Gracefully shutdown the tracer
-    global::shutdown_tracer_provider();
 
     Ok(())
 }
